@@ -313,9 +313,9 @@ class Tensor:
     def all(self, dim: Optional[Tensor] = None) -> Tensor:
         """Returns whether all elements are true."""
         if dim is not None:
-            return All.apply(self, dim)
+            return All.apply(self, self._ensure_tensor(dim))
         else:
-            return All.apply(self, Tensor.make([], (0,), backend=self.backend))
+            return All.apply(self.view(self.size), self._ensure_tensor(0))
 
     def add(self, other: TensorLike) -> Tensor:
         """Add two tensors element-wise."""
