@@ -46,10 +46,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
         Position in storage
 
     """
-    pos = 0
-    for i in range(min(len(index), len(strides))):
-        pos += index[i] * strides[i]
-    return pos
+    position = 0
+    for ind, stride in zip(index, strides):
+        position += ind * stride
+    return position
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -66,10 +66,12 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
 
     """
     if len(shape) == 0:
-        return
-    for i in reversed(range(len(shape))):
-        out_index[i] = ordinal % shape[i]
-        ordinal //= shape[i]
+        return  # Nothing to do for zero-dimensional tensors
+    cur_ord = ordinal + 0
+    for i in range(len(shape) - 1, -1, -1):
+        sh = shape[i]
+        out_index[i] = int(cur_ord % sh)
+        cur_ord = cur_ord // sh
 
 
 def broadcast_index(
@@ -93,13 +95,12 @@ def broadcast_index(
         None
 
     """
-    offset = len(big_shape) - len(shape)
-
-    for i in range(len(shape)):
-        if shape[i] == 1:
-            out_index[i] = 0
+    for i, s in enumerate(shape):
+        if s > 1:
+            out_index[i] = big_index[i + (len(big_shape) - len(shape))]
         else:
-            out_index[i] = big_index[i + offset]
+            out_index[i] = 0
+    return None
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -119,25 +120,25 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
         IndexingError : if cannot broadcast
 
     """
-    # Align shapes by right-padding with ones
-    len1, len2 = len(shape1), len(shape2)
-    max_len = max(len1, len2)
-    padded_shape1 = (1,) * (max_len - len1) + tuple(shape1)
-    padded_shape2 = (1,) * (max_len - len2) + tuple(shape2)
+    a, b = shape1, shape2
+    m = max(len(a), len(b))
+    c_rev = [0] * m
+    a_rev = list(reversed(a))
+    b_rev = list(reversed(b))
+    for i in range(m):
+        # Safely get dimensions, defaulting to 1 if index out of range
+        a_dim = a_rev[i] if i < len(a_rev) else 1
+        b_dim = b_rev[i] if i < len(b_rev) else 1
+        c_dim = max(a_dim, b_dim)
+        c_rev[i] = c_dim
+        # Check broadcasting rules for a_dim
+        if a_dim != c_dim and a_dim != 1:
+            raise IndexingError(f"Broadcast failure {a} {b}")
+        # Check broadcasting rules for b_dim
+        if b_dim != c_dim and b_dim != 1:
+            raise IndexingError(f"Broadcast failure {a} {b}")
+    return tuple(reversed(c_rev))
 
-    broadcasted_shape = []
-
-    for dim1, dim2 in zip(padded_shape1, padded_shape2):
-        if dim1 == dim2:
-            broadcasted_shape.append(dim1)
-        elif dim1 == 1:
-            broadcasted_shape.append(dim2)
-        elif dim2 == 1:
-            broadcasted_shape.append(dim1)
-        else:
-            raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}")
-
-    return tuple(broadcasted_shape)
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
@@ -270,11 +271,11 @@ class TensorData:
         assert list(sorted(order)) == list(
             range(len(self.shape))
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
-
-        new_shape = tuple(self.shape[o] for o in order)
-        new_strides = tuple(self.strides[o] for o in order)
-
-        return TensorData(self._storage, new_shape, new_strides)
+        return TensorData(
+            self._storage,
+            tuple([self.shape[o] for o in order]),
+            tuple([self._strides[o] for o in order]),
+        )
 
     def to_string(self) -> str:
         """Convert to string"""
