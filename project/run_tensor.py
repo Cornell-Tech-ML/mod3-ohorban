@@ -11,9 +11,46 @@ def RParam(*shape):
     r = 2 * (minitorch.rand(shape) - 0.5)
     return minitorch.Parameter(r)
 
-
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
+
+class Linear(minitorch.Module):
+    def __init__(self, in_size, out_size):
+        super().__init__()
+        self.weight = RParam(in_size, out_size)
+        self.bias = RParam(out_size)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        x = x.view(batch_size, x.shape[-1], 1)
+        x = (x * self.weight.value).sum(1)
+        return x + self.bias.value
+
+class Network(minitorch.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.layer1 = Linear(2, hidden_size)
+        self.layer2 = Linear(hidden_size, hidden_size)
+        self.layer3 = Linear(hidden_size, 1)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+
+        # First layer
+        x = self.layer1.forward(x)
+        x = x.relu()
+
+        # Second layer
+        x = self.layer2.forward(x)
+        x = x.relu()
+
+        # Output layer
+        x = self.layer3.forward(x)
+        x = x.sigmoid()
+
+        x = x.view(batch_size, 1)
+
+        return x
 
 
 class TensorTrain:
@@ -59,7 +96,6 @@ class TensorTrain:
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
                 log_fn(epoch, total_loss, correct, losses)
-
 
 if __name__ == "__main__":
     PTS = 50
