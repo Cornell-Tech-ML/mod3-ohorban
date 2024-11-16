@@ -110,14 +110,11 @@ class Add(Function):
 class All(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, dim: Tensor) -> Tensor:
-        """Computes forward pass for all() function."""
-        result = a._tensor._storage.all()
-        return minitorch.Tensor.make([float(result)], (), backend=a.backend)
-
-    @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tuple[None]:
-        """Computes backward pass for all() function."""
-        return (None,)
+        """Return 1 if all are true"""
+        if dim is not None:
+            return a.f.mul_reduce(a, int(dim.item()))
+        else:
+            return a.f.mul_reduce(a.contiguous().view(int(operators.prod(a.shape))), 0)
 
 
 class Mul(Function):
