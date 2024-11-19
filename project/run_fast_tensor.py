@@ -15,43 +15,35 @@ def default_log_fn(epoch, total_loss, correct, losses):
 
 
 def RParam(*shape, backend):
-    r = minitorch.rand(shape, backend=backend) - 0.5
+    r = 2 * (minitorch.rand(shape, backend=backend) - 0.5)
     return minitorch.Parameter(r)
-
-
-class Network(minitorch.Module):
-    def __init__(self, hidden, backend):
-        super().__init__()
-
-        # Submodules
-        self.layer1 = Linear(2, hidden, backend)
-        self.layer2 = Linear(hidden, hidden, backend)
-        self.layer3 = Linear(hidden, 1, backend)
-
-    def forward(self, x):
-        # Pass input through the first linear layer and apply ReLU activation
-        h = self.layer1.forward(x).relu()
-        # Pass through the second linear layer and apply ReLU activation
-        h = self.layer2.forward(h).relu()
-        # Pass through the third linear layer and apply Sigmoid activation
-        out = self.layer3.forward(h).sigmoid()
-        return out
-
 
 
 class Linear(minitorch.Module):
     def __init__(self, in_size, out_size, backend):
         super().__init__()
-        self.weights = RParam(in_size, out_size, backend=backend)
-        s = minitorch.zeros((out_size,), backend=backend)
-        s = s + 0.1
-        self.bias = minitorch.Parameter(s)
-        self.out_size = out_size
+        self.weight = RParam(in_size, out_size, backend=backend)
+        self.bias = RParam(out_size, backend=backend)
 
     def forward(self, x):
-        # Perform linear transformation: x @ W + b
-        return x @ self.weights.value + self.bias.value
+        # Perform linear transformation using matrix multiplication
+        return x @ self.weight.value + self.bias.value
 
+
+class Network(minitorch.Module):
+    def __init__(self, hidden, backend):
+        super().__init__()
+        self.layer1 = Linear(2, hidden, backend)
+        self.layer2 = Linear(hidden, hidden, backend)
+        self.layer3 = Linear(hidden, 1, backend)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        x = self.layer1.forward(x).relu()
+        x = self.layer2.forward(x).relu()
+        x = self.layer3.forward(x).sigmoid()
+        x = x.view(batch_size, 1)
+        return x
 
 
 class FastTrain:

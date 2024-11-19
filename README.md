@@ -689,8 +689,44 @@ mod3-ohorban/tests/test_tensor_general.py::test_bmm[cuda]
 ```
 
 
-after running `!python3 project/timing.py` in google colab:
+after running `!cd $DIR; python3 project/timing.py` in google colab:
 
 ```
+/usr/local/lib/python3.10/dist-packages/numba/cuda/dispatcher.py:536: NumbaPerformanceWarning: Grid size 2 will likely result in GPU under-utilization due to low occupancy.
+  warn(NumbaPerformanceWarning(msg))
+/usr/local/lib/python3.10/dist-packages/numba/cuda/cudadrv/devicearray.py:888: NumbaPerformanceWarning: Host array used in CUDA kernel will incur copy overhead to/from device.
+  warn(NumbaPerformanceWarning(msg))
+Running size 64
+/usr/local/lib/python3.10/dist-packages/numba/cuda/dispatcher.py:536: NumbaPerformanceWarning: Grid size 8 will likely result in GPU under-utilization due to low occupancy.
+  warn(NumbaPerformanceWarning(msg))
+{'fast': 0.0035250186920166016, 'gpu': 0.006620248158772786}
+Running size 128
+/usr/local/lib/python3.10/dist-packages/numba/cuda/dispatcher.py:536: NumbaPerformanceWarning: Grid size 32 will likely result in GPU under-utilization due to low occupancy.
+  warn(NumbaPerformanceWarning(msg))
+{'fast': 0.01604485511779785, 'gpu': 0.014055728912353516}
+Running size 256
+{'fast': 0.0994115670522054, 'gpu': 0.05345543225606283}
+Running size 512
+{'fast': 0.9861493905385336, 'gpu': 0.19518097241719565}
+Running size 1024
+{'fast': 7.728023211161296, 'gpu': 0.8481698830922445}
 
+Timing summary
+Size: 64
+    fast: 0.00353
+    gpu: 0.00662
+Size: 128
+    fast: 0.01604
+    gpu: 0.01406
+Size: 256
+    fast: 0.09941
+    gpu: 0.05346
+Size: 512
+    fast: 0.98615
+    gpu: 0.19518
+Size: 1024
+    fast: 7.72802
+    gpu: 0.84817
 ```
+
+# Task3_5
