@@ -538,12 +538,12 @@ def _tensor_matrix_multiply(
     b_shared = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
 
     # The final position c[i, j]
-    i = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
-    j = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    j = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
 
     # The local position in the block.
-    pi = cuda.threadIdx.y
-    pj = cuda.threadIdx.x
+    pi = cuda.threadIdx.x
+    pj = cuda.threadIdx.y
 
     # Initialize the accumulator for the dot product.
     temp = 0.0

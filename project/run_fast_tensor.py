@@ -23,7 +23,10 @@ class Linear(minitorch.Module):
     def __init__(self, in_size, out_size, backend):
         super().__init__()
         self.weight = RParam(in_size, out_size, backend=backend)
-        self.bias = RParam(out_size, backend=backend)
+        s = minitorch.zeros((out_size,), backend=backend)
+        s = s + 0.1
+        self.bias = minitorch.Parameter(s)
+        self.out_size = out_size
 
     def forward(self, x):
         # Perform linear transformation using matrix multiplication
@@ -38,11 +41,9 @@ class Network(minitorch.Module):
         self.layer3 = Linear(hidden, 1, backend)
 
     def forward(self, x):
-        batch_size = x.shape[0]
         x = self.layer1.forward(x).relu()
         x = self.layer2.forward(x).relu()
         x = self.layer3.forward(x).sigmoid()
-        x = x.view(batch_size, 1)
         return x
 
 
