@@ -388,7 +388,8 @@ def tensor_reduce(
 
         # Load elements along the reduction dimension into shared memory
         if pos < reduce_size:
-            a_index[:] = out_index[:]  # Copy all dimensions
+            for d in range(MAX_DIMS):
+                a_index[d] = out_index[d] # Copy all dimensions
             a_index[reduce_dim] = pos  # Update the reduction dimension
             a_pos = index_to_position(a_index, a_strides)
             cache[pos] = a_storage[a_pos]
