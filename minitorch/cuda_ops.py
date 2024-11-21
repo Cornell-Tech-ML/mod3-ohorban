@@ -493,16 +493,16 @@ def mm_practice(a: Tensor, b: Tensor) -> TensorData:
 
 
 def _tensor_matrix_multiply(
-    out: Storage,  # Output tensor storage.
-    out_shape: Shape,  # Shape of the output tensor.
+    out: Storage,          # Output tensor storage.
+    out_shape: Shape,      # Shape of the output tensor.
     out_strides: Strides,  # Strides for the output tensor.
-    out_size: int,  # Total number of elements in the output tensor.
-    a_storage: Storage,  # Input tensor A storage.
-    a_shape: Shape,  # Shape of input tensor A.
-    a_strides: Strides,  # Strides for input tensor A.
-    b_storage: Storage,  # Input tensor B storage.
-    b_shape: Shape,  # Shape of input tensor B.
-    b_strides: Strides,  # Strides for input tensor B.
+    out_size: int,         # Total number of elements in the output tensor.
+    a_storage: Storage,    # Input tensor A storage.
+    a_shape: Shape,        # Shape of input tensor A.
+    a_strides: Strides,    # Strides for input tensor A.
+    b_storage: Storage,    # Input tensor B storage.
+    b_shape: Shape,        # Shape of input tensor B.
+    b_strides: Strides,    # Strides for input tensor B.
 ) -> None:
     """CUDA tensor matrix multiply function.
 
@@ -541,7 +541,7 @@ def _tensor_matrix_multiply(
     # Batch index from the z-dimension of the grid
     batch = cuda.blockIdx.z
 
-    BLOCK_DIM = 32
+    BLOCK_DIM = 32  # Tile size
     a_shared = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
     b_shared = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
 
@@ -553,31 +553,42 @@ def _tensor_matrix_multiply(
     tx = cuda.threadIdx.x
     ty = cuda.threadIdx.y
 
-    # Dimensions of the output matrix
+    # Correct Dimension Mapping
     M, N, K = (
-        out_shape[-3],
-        out_shape[-2],
-        a_shape[-1],
-    )  # Assuming 3D tensors [batch, M, N]
+        out_shape[-2],  # Rows of the output matrix
+        out_shape[-1],  # Columns of the output matrix
+        a_shape[-1],    # Shared dimension
+    )
 
     temp = 0.0  # Accumulator for the dot product
 
+    # Number of tiles along the K dimension
+    num_tiles = (K + BLOCK_DIM - 1) // BLOCK_DIM
+
     # Loop over all tiles along the K dimension
-    for start in range(0, K, BLOCK_DIM):
+    for tile_idx in range(num_tiles):
         # Calculate the column index for `a` and row index for `b`
-        a_k = start + ty
-        b_k = start + tx
+        a_k = tile_idx * BLOCK_DIM + ty
+        b_k = tile_idx * BLOCK_DIM + tx
 
         # Load data into shared memory for `a`
         if (i < M) and (a_k < K):
-            a_pos = batch * a_batch_stride + i * a_strides[1] + a_k * a_strides[2]
+            a_pos = (
+                batch * a_batch_stride +
+                i * a_strides[1] +
+                a_k * a_strides[2]
+            )
             a_shared[tx, ty] = a_storage[a_pos]
         else:
             a_shared[tx, ty] = 0.0  # Zero-padding for out-of-bounds
 
         # Load data into shared memory for `b`
         if (b_k < K) and (j < N):
-            b_pos = batch * b_batch_stride + b_k * b_strides[1] + j * b_strides[2]
+            b_pos = (
+                batch * b_batch_stride +
+                b_k * b_strides[1] +
+                j * b_strides[2]
+            )
             b_shared[tx, ty] = b_storage[b_pos]
         else:
             b_shared[tx, ty] = 0.0  # Zero-padding for out-of-bounds
@@ -587,14 +598,19 @@ def _tensor_matrix_multiply(
 
         # Perform the dot product for the current tile
         for k in range(BLOCK_DIM):
-            temp += a_shared[tx, k] * b_shared[k, ty]
+            if (tile_idx * BLOCK_DIM + k) < K:
+                temp += a_shared[tx, k] * b_shared[k, ty]
 
         # Synchronize before loading the next tile
         cuda.syncthreads()
 
     # Write the accumulated result to the output tensor if within bounds
     if (i < M) and (j < N):
-        out_pos = batch * out_strides[0] + i * out_strides[1] + j * out_strides[2]
+        out_pos = (
+            batch * out_strides[0] +
+            i * out_strides[1] +
+            j * out_strides[2]
+        )
         out[out_pos] = temp
 
 
