@@ -41,10 +41,10 @@ class Network(minitorch.Module):
         self.layer3 = Linear(hidden, 1, backend)
 
     def forward(self, x):
-        x = self.layer1.forward(x).relu()
-        x = self.layer2.forward(x).relu()
-        x = self.layer3.forward(x).sigmoid()
-        return x
+        first = self.layer1.forward(x).relu()
+        second = self.layer2.forward(first).relu()
+        third = self.layer3.forward(second).sigmoid()
+        return third
 
 
 class FastTrain:
