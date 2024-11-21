@@ -28,7 +28,7 @@ class Linear(minitorch.Module):
 
     def forward(self, x):
         return x @ self.weights.value + self.bias.value
-    
+
 
 class Network(minitorch.Module):
     def __init__(self, hidden, backend):

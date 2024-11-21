@@ -158,12 +158,12 @@ def tensor_map(
     """
 
     def _map(
-        out: Storage,        # Output tensor storage.
-        out_shape: Shape,    # Shape of the output tensor.
+        out: Storage,  # Output tensor storage.
+        out_shape: Shape,  # Shape of the output tensor.
         out_strides: Strides,  # Strides for output tensor indexing.
-        in_storage: Storage, # Input tensor storage.
-        in_shape: Shape,     # Shape of the input tensor.
-        in_strides: Strides, # Strides for input tensor indexing.
+        in_storage: Storage,  # Input tensor storage.
+        in_shape: Shape,  # Shape of the input tensor.
+        in_strides: Strides,  # Strides for input tensor indexing.
     ) -> None:
         """Apply the function `fn` to each element of the input tensor and store in the output."""
         N = len(out)  # Total number of elements in the output tensor.
@@ -209,7 +209,6 @@ def tensor_map(
     )  # Use Numba to compile the function with parallelism enabled.
 
 
-
 def tensor_zip(
     fn: Callable[[float, float], float],
 ) -> Callable[
@@ -234,15 +233,15 @@ def tensor_zip(
     """
 
     def _zip(
-        out: Storage,          # Output tensor storage.
-        out_shape: Shape,      # Shape of the output tensor.
+        out: Storage,  # Output tensor storage.
+        out_shape: Shape,  # Shape of the output tensor.
         out_strides: Strides,  # Strides for output tensor indexing.
-        a_storage: Storage,    # Storage for the first input tensor.
-        a_shape: Shape,        # Shape of the first input tensor.
-        a_strides: Strides,    # Strides for the first input tensor.
-        b_storage: Storage,    # Storage for the second input tensor.
-        b_shape: Shape,        # Shape of the second input tensor.
-        b_strides: Strides,    # Strides for the second input tensor.
+        a_storage: Storage,  # Storage for the first input tensor.
+        a_shape: Shape,  # Shape of the first input tensor.
+        a_strides: Strides,  # Strides for the first input tensor.
+        b_storage: Storage,  # Storage for the second input tensor.
+        b_shape: Shape,  # Shape of the second input tensor.
+        b_strides: Strides,  # Strides for the second input tensor.
     ) -> None:
         """Apply the binary function `fn` to elements from two tensors."""
         N = len(out)  # Total number of elements in the output tensor.
@@ -298,7 +297,6 @@ def tensor_zip(
     )  # Use Numba to compile the function with parallelism enabled.
 
 
-
 def tensor_reduce(
     fn: Callable[[float, float], float],
 ) -> Callable[[Storage, Shape, Strides, Storage, Shape, Strides, int], None]:
@@ -321,13 +319,13 @@ def tensor_reduce(
     """
 
     def _reduce(
-        out: Storage,          # Output tensor storage.
-        out_shape: Shape,      # Shape of the output tensor.
+        out: Storage,  # Output tensor storage.
+        out_shape: Shape,  # Shape of the output tensor.
         out_strides: Strides,  # Strides for output tensor indexing.
-        a_storage: Storage,    # Input tensor storage.
-        a_shape: Shape,        # Shape of the input tensor.
-        a_strides: Strides,    # Strides for input tensor indexing.
-        reduce_dim: int,       # Dimension along which reduction is performed.
+        a_storage: Storage,  # Input tensor storage.
+        a_shape: Shape,  # Shape of the input tensor.
+        a_strides: Strides,  # Strides for input tensor indexing.
+        reduce_dim: int,  # Dimension along which reduction is performed.
     ) -> None:
         """Perform reduction along the specified dimension."""
         N = len(out)  # Total number of elements in the output tensor.
@@ -422,7 +420,11 @@ def _tensor_matrix_multiply(
     # Extract dimensions for readability.
     batch_size, out_dim1, out_dim2 = out_shape[0], out_shape[1], out_shape[2]
     # Precompute strides for efficiency.
-    out_stride0, out_stride1, out_stride2 = out_strides[0], out_strides[1], out_strides[2]
+    out_stride0, out_stride1, out_stride2 = (
+        out_strides[0],
+        out_strides[1],
+        out_strides[2],
+    )
     a_stride1, a_stride2 = a_strides[1], a_strides[2]
     b_stride1, b_stride2 = b_strides[1], b_strides[2]
 
@@ -447,12 +449,11 @@ def _tensor_matrix_multiply(
                     temp += a_storage[a_pos] * b_storage[b_pos]
 
                 # Compute the position in the output storage.
-                out_pos = (
-                    batch * out_stride0 + i * out_stride1 + j * out_stride2
-                )
+                out_pos = batch * out_stride0 + i * out_stride1 + j * out_stride2
 
                 # Store the result of the dot product in the output tensor.
                 out[out_pos] = temp
+
 
 # Compile the function with Numba for parallel execution and fast math optimizations.
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True, fastmath=True)
