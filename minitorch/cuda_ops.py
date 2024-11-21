@@ -389,7 +389,7 @@ def tensor_reduce(
         # Load elements along the reduction dimension into shared memory
         if pos < reduce_size:
             for d in range(MAX_DIMS):
-                a_index[d] = out_index[d] # Copy all dimensions
+                a_index[d] = out_index[d]  # Copy all dimensions
             a_index[reduce_dim] = pos  # Update the reduction dimension
             a_pos = index_to_position(a_index, a_strides)
             cache[pos] = a_storage[a_pos]
@@ -493,16 +493,16 @@ def mm_practice(a: Tensor, b: Tensor) -> TensorData:
 
 
 def _tensor_matrix_multiply(
-    out: Storage,          # Output tensor storage.
-    out_shape: Shape,      # Shape of the output tensor.
+    out: Storage,  # Output tensor storage.
+    out_shape: Shape,  # Shape of the output tensor.
     out_strides: Strides,  # Strides for the output tensor.
-    out_size: int,         # Total number of elements in the output tensor.
-    a_storage: Storage,    # Input tensor A storage.
-    a_shape: Shape,        # Shape of input tensor A.
-    a_strides: Strides,    # Strides for input tensor A.
-    b_storage: Storage,    # Input tensor B storage.
-    b_shape: Shape,        # Shape of input tensor B.
-    b_strides: Strides,    # Strides for input tensor B.
+    out_size: int,  # Total number of elements in the output tensor.
+    a_storage: Storage,  # Input tensor A storage.
+    a_shape: Shape,  # Shape of input tensor A.
+    a_strides: Strides,  # Strides for input tensor A.
+    b_storage: Storage,  # Input tensor B storage.
+    b_shape: Shape,  # Shape of input tensor B.
+    b_strides: Strides,  # Strides for input tensor B.
 ) -> None:
     """CUDA tensor matrix multiply function.
 
@@ -557,7 +557,7 @@ def _tensor_matrix_multiply(
     M, N, K = (
         out_shape[-2],  # Rows of the output matrix
         out_shape[-1],  # Columns of the output matrix
-        a_shape[-1],    # Shared dimension
+        a_shape[-1],  # Shared dimension
     )
 
     temp = 0.0  # Accumulator for the dot product
@@ -573,22 +573,14 @@ def _tensor_matrix_multiply(
 
         # Load data into shared memory for `a`
         if (i < M) and (a_k < K):
-            a_pos = (
-                batch * a_batch_stride +
-                i * a_strides[1] +
-                a_k * a_strides[2]
-            )
+            a_pos = batch * a_batch_stride + i * a_strides[1] + a_k * a_strides[2]
             a_shared[tx, ty] = a_storage[a_pos]
         else:
             a_shared[tx, ty] = 0.0  # Zero-padding for out-of-bounds
 
         # Load data into shared memory for `b`
         if (b_k < K) and (j < N):
-            b_pos = (
-                batch * b_batch_stride +
-                b_k * b_strides[1] +
-                j * b_strides[2]
-            )
+            b_pos = batch * b_batch_stride + b_k * b_strides[1] + j * b_strides[2]
             b_shared[tx, ty] = b_storage[b_pos]
         else:
             b_shared[tx, ty] = 0.0  # Zero-padding for out-of-bounds
@@ -606,11 +598,7 @@ def _tensor_matrix_multiply(
 
     # Write the accumulated result to the output tensor if within bounds
     if (i < M) and (j < N):
-        out_pos = (
-            batch * out_strides[0] +
-            i * out_strides[1] +
-            j * out_strides[2]
-        )
+        out_pos = batch * out_strides[0] + i * out_strides[1] + j * out_strides[2]
         out[out_pos] = temp
 
 
