@@ -1,8 +1,7 @@
 import random
-
 import numba
-
 import minitorch
+import time
 
 datasets = minitorch.datasets
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
@@ -10,27 +9,12 @@ if numba.cuda.is_available():
     GPUBackend = minitorch.TensorBackend(minitorch.CudaOps)
 
 
-def default_log_fn(epoch, total_loss, correct, losses):
-    print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
-
+def default_log_fn(epoch, total_loss, correct, losses, epoch_time):
+    print(f"Epoch {epoch} Loss: {total_loss:.4f} Correct: {correct} Time: {epoch_time:.4f} sec")
 
 def RParam(*shape, backend):
     r = minitorch.rand(shape, backend=backend) - 0.5
     return minitorch.Parameter(r)
-
-
-class Network(minitorch.Module):
-    def __init__(self, hidden, backend):
-        super().__init__()
-
-        # Submodules
-        self.layer1 = Linear(2, hidden, backend)
-        self.layer2 = Linear(hidden, hidden, backend)
-        self.layer3 = Linear(hidden, 1, backend)
-
-    def forward(self, x):
-        # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
 
 
 class Linear(minitorch.Module):
@@ -43,8 +27,22 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
+        return x @ self.weights.value + self.bias.value
+
+
+class Network(minitorch.Module):
+    def __init__(self, hidden, backend):
+        super().__init__()
+
+        # Submodules
+        self.layer1 = Linear(2, hidden, backend)
+        self.layer2 = Linear(hidden, hidden, backend)
+        self.layer3 = Linear(hidden, 1, backend)
+
+    def forward(self, x):
+        first = self.layer1.forward(x).relu()
+        second = self.layer2.forward(first).relu()
+        return self.layer3.forward(second).sigmoid()
 
 
 class FastTrain:
@@ -64,8 +62,11 @@ class FastTrain:
         optim = minitorch.SGD(self.model.parameters(), learning_rate)
         BATCH = 10
         losses = []
+        epoch_times = []  # Initialize list to store epoch times
+
 
         for epoch in range(max_epochs):
+            start_time = time.time()  # Start timer for the epoch
             total_loss = 0.0
             c = list(zip(data.X, data.y))
             random.shuffle(c)
@@ -75,8 +76,6 @@ class FastTrain:
                 optim.zero_grad()
                 X = minitorch.tensor(X_shuf[i : i + BATCH], backend=self.backend)
                 y = minitorch.tensor(y_shuf[i : i + BATCH], backend=self.backend)
-                # Forward
-
                 out = self.model.forward(X).view(y.shape[0])
                 prob = (out * y) + (out - 1.0) * (y - 1.0)
                 loss = -prob.log()
@@ -87,15 +86,24 @@ class FastTrain:
                 # Update
                 optim.step()
 
+            end_time = time.time()
+            epoch_time = end_time - start_time
+            epoch_times.append(epoch_time)
             losses.append(total_loss)
+
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
                 X = minitorch.tensor(data.X, backend=self.backend)
                 y = minitorch.tensor(data.y, backend=self.backend)
+
                 out = self.model.forward(X).view(y.shape[0])
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
-                log_fn(epoch, total_loss, correct, losses)
+                log_fn(epoch, total_loss, correct, losses, epoch_time)  # Pass epoch_time
+
+        # Calculate average epoch time
+        average_epoch_time = sum(epoch_times) / len(epoch_times)
+        print(f"\nAvg Time / Epoch: {average_epoch_time:.4f} sec")
 
 
 if __name__ == "__main__":
@@ -116,7 +124,7 @@ if __name__ == "__main__":
     if args.DATASET == "xor":
         data = minitorch.datasets["Xor"](PTS)
     elif args.DATASET == "simple":
-        data = minitorch.datasets["Simple"].simple(PTS)
+        data = minitorch.datasets["Simple"](PTS)
     elif args.DATASET == "split":
         data = minitorch.datasets["Split"](PTS)
 
