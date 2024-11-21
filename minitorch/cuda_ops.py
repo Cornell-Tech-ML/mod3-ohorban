@@ -195,7 +195,7 @@ def tensor_map(
             out[out_pos] = fn(in_storage[in_pos])
 
     # Return the CUDA JIT-compiled function
-    return jit(_map)  # type: ignore
+    return cuda.jit()(_map)  # type: ignore
 
 
 def tensor_zip(
@@ -259,7 +259,7 @@ def tensor_zip(
         out[out_pos] = fn(a_storage[a_pos], b_storage[b_pos])
 
     # Return the CUDA JIT-compiled function
-    return jit(_zip)  # type: ignore
+    return cuda.jit()(_zip)  # type: ignore
 
 
 def _sum_practice(out: Storage, a: Storage, size: int) -> None:
@@ -316,7 +316,7 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
 
 
 # Compile the sum practice function using CUDA JIT
-jit_sum_practice = jit(_sum_practice)
+jit_sum_practice = cuda.jit()(_sum_practice)
 
 
 def sum_practice(a: Tensor) -> TensorData:
@@ -410,7 +410,7 @@ def tensor_reduce(
             out[out_position] = cache[0]  # Store the reduced result
 
     # Return the CUDA JIT-compiled reduction function
-    return jit(_reduce)  # type: ignore
+    return cuda.jit()(_reduce)  # type: ignore
 
 
 def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
@@ -474,7 +474,7 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
 
 
 # Compile the matrix multiplication practice function using CUDA JIT
-jit_mm_practice = jit(_mm_practice)
+jit_mm_practice = cuda.jit()(_mm_practice)
 
 
 def mm_practice(a: Tensor, b: Tensor) -> TensorData:
@@ -598,4 +598,4 @@ def _tensor_matrix_multiply(
 
 
 # Compile the tensor matrix multiply function using CUDA JIT
-tensor_matrix_multiply = jit(_tensor_matrix_multiply)
+tensor_matrix_multiply = cuda.jit()(_tensor_matrix_multiply)
