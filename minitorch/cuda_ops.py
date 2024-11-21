@@ -368,7 +368,7 @@ def tensor_reduce(
         reduce_value: float,    # Initial value for the reduction.
     ) -> None:
         # Shared memory cache to store intermediate results of the reduction.
-        BLOCK_DIM = cuda.blockDim.x
+        BLOCK_DIM = 1024
         cache = cuda.shared.array(BLOCK_DIM, numba.float64)
 
         # Global thread index
